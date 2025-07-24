@@ -4,7 +4,7 @@ import webbrowser
 import pandas as pd
 import msoffcrypto
 from io import BytesIO
-from .config import START_YEAR, TODAY, THIS_YEAR, PORT, MONTHS, VACATION_PERIODS, VACACIONES
+from .config import DAYS_PER_YEAR, TODAY, THIS_YEAR, PROJECT_ADRESS, LOGO_AYA, PORT, MONTHS, CONTRACT_TYPE, CONTRATOS
 from . import data_management as dm
 
 def setup_locale():
@@ -21,7 +21,8 @@ def open_browser():
     webbrowser.open(f"http://localhost:{PORT}")
 
 def procesar_excel():
-    df = None # Entregar dataframe con polars
+    df = dm.process_data(CONTRATOS)
+    df = dm.transform_data(df, TODAY, DAYS_PER_YEAR, CONTRACT_TYPE)
 
     # Convertir de Polars a Pandas
     df_pd = df.to_pandas()

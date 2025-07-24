@@ -1,0 +1,134 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f4f6f8;
+    margin: 0;
+    padding: 40px;
+    color: #2c3e50;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+header img {
+    width: 80px;
+    margin-right: 20px;
+}
+
+.title-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.title-block h1 {
+    font-size: 26px;
+    color: #c4161c;
+    margin: 0;
+}
+
+.title-block span {
+    font-size: 15px;
+    color: #7f8c8d;
+    margin-top: 4px;
+}
+
+.search-container {
+    margin-bottom: 20px;
+}
+
+#search {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    border-radius: 6px;
+    box-sizing: border-box;
+    border: 0px solid #ccc;
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+select {
+    flex: 1 1 180px;
+    padding: 12px 14px;
+    font-size: 14px;
+    border: 0px solid #ccc;
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    background-color: #fff;
+    color: #2c3e50;
+    transition: border 0.2s, box-shadow 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg fill='%232c3e50' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 16px;
+}
+
+select:hover,
+select:focus {
+    border-color: #c4161c;
+    box-shadow: 0 0 4px rgba(196, 22, 28, 0.3);
+    outline: none;
+}
+
+/* Solo en navegadores que lo permiten (como Chrome/Edge) */
+select:focus option:checked {
+    background-color: #c4161c;
+    color: white;
+    font-weight: bold;
+}
+
+.download-container {
+    text-align: right;
+    margin-bottom: 25px;
+}
+
+.download-link {
+    color: #c4161c;
+    text-decoration: underline;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+th {
+    background-color: #c4161c;
+    color: white;
+    padding: 12px;
+    text-align: left;
+}
+
+td {
+    padding: 12px;
+    border-top: 1px solid #eee;
+}
+
+tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+tr:hover {
+    background-color: #f0f0f0;
+}
+
+th[data-col="MES"],
+td[data-col="MES"] {
+    display: none;
+}

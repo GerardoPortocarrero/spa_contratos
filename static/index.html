@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registro de Contratos</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/style.css?v=1">
+</head>
+<body>
+  <header>
+    <img src="/static/logo.png" alt="Logo AYA">
+    <div class="title-block">
+      <h1>Registro de Contratos</h1>
+      <span>A Y A DISTRIBUCIONES E.I.R.L</span>
+    </div>
+  </header>
+
+  <div class="search-container">
+    <input type="text" id="search" placeholder="Buscar por Nombre, Dni, Cargo o Contrato">
+  </div>
+
+  <div class="filters">
+    <select id="locacionFilter"><option value="">Locación</option></select>
+    <select id="cargoFilter"><option value="">Cargo</option></select>
+    <select id="contratoFilter"><option value="">Tipo de Contrato</option></select>
+  </div>
+
+  <div class="download-container">
+    <a class="download-link" onclick="descargarCSV()">Descargar CSV</a>
+  </div>
+
+  <table id="data-table">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
