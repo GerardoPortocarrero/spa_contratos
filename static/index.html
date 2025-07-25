@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <title>Registro de Contratos</title>
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="stylesheet" href="/static/style.css?v=1">
 </head>
+
 <body>
   <header>
     <img src="/static/logo.png" alt="Logo AYA">
@@ -20,9 +22,15 @@
   </div>
 
   <div class="filters">
-    <select id="locacionFilter"><option value="">Locación</option></select>
-    <select id="cargoFilter"><option value="">Cargo</option></select>
-    <select id="contratoFilter"><option value="">Tipo de Contrato</option></select>
+    <select id="locacionFilter">
+      <option value="">Locación</option>
+    </select>
+    <select id="cargoFilter">
+      <option value="">Cargo</option>
+    </select>
+    <select id="contratoFilter">
+      <option value="">Tipo de Contrato</option>
+    </select>
   </div>
 
   <div class="download-container">
@@ -34,6 +42,16 @@
     <tbody></tbody>
   </table>
 
+  <!-- Modal -->
+  <div id="periodosModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Periodos Detallados</h3>
+      <div id="modalText"></div>
+    </div>
+  </div>
+
   <script src="/static/script.js"></script>
 </body>
+
 </html>

@@ -5,8 +5,8 @@ import locale
 from datetime import datetime
 
 # Eliminar columnas innecesarias
-def get_relevant_columns(df, document):
-    return df[document['relevant_columns']]
+def get_relevant_columns(df, relevant_columns):
+    return df[relevant_columns]
 
 # Obtener las columnas que son periodos dinamicamente
 def get_period_dates_columns(df):
@@ -31,9 +31,10 @@ def process_data(CONTRATOS):
     df = filter_noise(df)
 
     period_columns = get_period_dates_columns(df)
-    CONTRATOS['relevant_columns'].extend(period_columns)
+    relevant_columns = CONTRATOS['relevant_columns'] + period_columns
+    relevant_columns = list(dict.fromkeys(relevant_columns))
 
-    df = get_relevant_columns(df, CONTRATOS)
+    df = get_relevant_columns(df, relevant_columns)
 
     # Asegurarse que todo es str (para que acepte el cambio de pandas a polars
     # ya que hay columnas que son fecha y a la vez str como SUBSIDIO)
@@ -77,10 +78,14 @@ def formatear_fecha_es(fecha: datetime) -> str:
             pass
     return fecha.strftime("%d %B %Y").lower()
 
-def formatear_rango_periodo(ingreso, cese) -> str:
+def formatear_rango_periodo(ingreso, cese, TODAY) -> str:
     ingreso_txt = formatear_fecha_es(ingreso)
-    cese_txt = formatear_fecha_es(cese) if cese is not None else "ACTIVO"
-    return f"{ingreso_txt} - {cese_txt}"
+    cese_txt = formatear_fecha_es(cese)
+    if cese == TODAY:
+        cese_txt = f"(ACTIVO a la fecha {cese_txt})"
+    elif TODAY <= cese:
+        cese_txt = f"(CESE a la fecha {cese_txt})"
+    return f"{ingreso_txt} a {cese_txt}"
 
 # Expandir el dataframe con los datos necesarios
 def expandir_contratos(df, PERIOD_COLUMNS, TODAY, DAYS_PER_YEAR, CONTRACT_TYPE):
@@ -108,7 +113,7 @@ def expandir_contratos(df, PERIOD_COLUMNS, TODAY, DAYS_PER_YEAR, CONTRACT_TYPE):
                 cese_date = TODAY
 
             all_periods += 1
-            period_details.append(formatear_rango_periodo(ingreso_date, cese_date))
+            period_details.append(formatear_rango_periodo(ingreso_date, cese_date, TODAY))
 
             # Verificamos si el periodo es válido
             if previous_cese_period:

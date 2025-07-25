@@ -12,6 +12,7 @@ THIS_YEAR = TODAY.year
 PROJECT_ADRESS = os.path.dirname(os.path.abspath(__file__))
 LOGO_AYA = 'logo.png'
 PORT = 8002
+INDETERMINADO = 'Indeterminado'
 
 # Diccionarios
 MONTHS = {
@@ -32,7 +33,6 @@ CONTRATOS = {
         'NRODOCIDEN',
         'DNI',
         'CARGO',
-        #*CONTRACT_PERIODS,
         'AREA',
     ]
 }

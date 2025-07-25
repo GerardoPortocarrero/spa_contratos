@@ -1,15 +1,22 @@
 let headers = [];
 let rows = [];
+let indexPeriodosDetallados = -1;
 let currentSort = { col: "Tiempo Servicio", asc: false };
 
 async function cargarCSV() {
-    const response = await fetch("vacacion.csv", {
+    const response = await fetch("contrato.csv", {
         headers: { 'Accept': 'text/csv; charset=utf-8' }
     });
     const text = await response.text();
     const lines = text.trim().split("\n").filter(line => line.trim() !== "");
     headers = lines[0].split(";").map(h => h.trim());
     rows = lines.slice(1).map(l => l.split(";").map(c => c.trim()));
+
+    indexPeriodosDetallados = headers.indexOf("Periodos Detallados");
+
+    if (indexPeriodosDetallados !== -1) {
+        headers.splice(indexPeriodosDetallados, 1); // Ocultamos esa columna
+    }
 }
 
 function renderTabla(datos) {
@@ -21,10 +28,54 @@ function renderTabla(datos) {
         return `<th data-col="${h}" style="cursor:pointer" onclick="ordenarPor('${h}')">${h}${icon}</th>`;
     }).join("") + "</tr>";
 
-    tbody.innerHTML = datos.map(row =>
-        "<tr>" + row.map((celda, i) =>
-            `<td data-col="${headers[i]}">${celda}</td>`).join("") + "</tr>"
-    ).join("");
+    tbody.innerHTML = "";
+
+    datos.forEach(row => {
+        const tr = document.createElement("tr");
+
+        row.forEach((celda, i) => {
+            if (i === indexPeriodosDetallados) return; // omitimos la celda visualmente
+
+            const col = headers[i >= indexPeriodosDetallados ? i - 1 : i]; // ajustar índice si ya quitamos una columna
+            const td = document.createElement("td");
+
+            td.textContent = celda;
+            td.setAttribute("data-col", col);
+
+            if (col === "Periodos" && indexPeriodosDetallados !== -1) {
+                const detalleTexto = row[indexPeriodosDetallados];
+
+                // Crear contenido visual con ícono y tooltip
+                td.innerHTML = `
+                    <span title="Haz clic para ver los periodos detallados" style="
+                        cursor: pointer;
+                        color: #007bff;
+                        text-decoration: underline dotted;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
+                    ">
+                        ${celda}
+                        <span style="font-size: 14px; color: #007bff;">📅</span>
+                    </span>
+                `;
+
+                td.addEventListener("click", () => {
+                    const periodosArray = detalleTexto.split(" / ");
+                    document.getElementById("modalText").innerHTML =
+                        "<ul style='padding-left: 20px;'>" +
+                        periodosArray.map(p => `<li>${p.trim()}</li>`).join("") +
+                        "</ul>";
+                    document.getElementById("periodosModal").style.display = "block";
+                });
+            }
+
+
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+    });
 }
 
 function actualizarFiltros(columna, selectorId) {
@@ -52,7 +103,7 @@ function aplicarFiltros() {
             const i = headers.indexOf(col);
             return val === "" || row[i] === val;
         }) && row.some((celda, i) => {
-            const colName = headers[i];
+            const colName = headers[i >= indexPeriodosDetallados ? i - 1 : i];
             return ["Nombre", "Dni", "Cargo", "Contrato"].includes(colName) && celda.toLowerCase().includes(termino);
         })
     );
@@ -92,14 +143,15 @@ function ordenarPor(columna) {
 function descargarCSV() {
     const datos = aplicarFiltros();
     let contenido = "\ufeff" + headers.join(";") + "\n";
-    contenido += datos.map(r => r.join(";")).join("\n");
+
+    contenido += datos.map(row => row.join(";")).join("\n"); // ✅ sin eliminar columnas
 
     const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "vacaciones_filtradas.csv");
+    link.setAttribute("download", "contratos_filtrados.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -124,3 +176,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 });
+
+// Cerrar modal al hacer clic en la X
+document.querySelector(".modal .close").onclick = function () {
+    document.getElementById("periodosModal").style.display = "none";
+};
+
+// Cerrar modal si haces clic fuera del contenido
+window.onclick = function (event) {
+    const modal = document.getElementById("periodosModal");
+    if (event.target === modal) {
+        modal.style.display = "none";
+    }
+};

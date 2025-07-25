@@ -2,8 +2,6 @@ import locale
 import time
 import webbrowser
 import pandas as pd
-import msoffcrypto
-from io import BytesIO
 from .config import DAYS_PER_YEAR, TODAY, THIS_YEAR, PROJECT_ADRESS, LOGO_AYA, PORT, MONTHS, CONTRACT_TYPE, CONTRATOS
 from . import data_management as dm
 
