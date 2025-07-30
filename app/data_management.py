@@ -96,13 +96,15 @@ def expandir_contratos(df, PERIOD_COLUMNS, TODAY, DAYS_PER_YEAR, CONTRACT_TYPE):
 
     for row in df.iter_rows(named=True):
         all_periods = 0
+        count = 0
         valid_periods = []
         period_details = []
         previous_cese_period = None
-
+        
         for period in period_numbers:
             ingreso_date = row.get(f'FECHA_INGRESO_PERIODO_{period}')
             cese_date = row.get(f'FECHA_CESE_PERIODO_{period}')
+            count += 1
 
             # Si no hay fecha de ingreso verificar el siguiente periodo
             if ingreso_date is None:
@@ -120,8 +122,12 @@ def expandir_contratos(df, PERIOD_COLUMNS, TODAY, DAYS_PER_YEAR, CONTRACT_TYPE):
                 gap_days = (ingreso_date - previous_cese_period).days
                 if gap_days > DAYS_PER_YEAR:
                     valid_periods = []  # reiniciar periodos válidos si el salto es muy grande
+            
+            if count < len(period_numbers):
+                valid_periods.append((ingreso_date, cese_date))                
+            else:
+                valid_periods.append((ingreso_date, TODAY))
 
-            valid_periods.append((ingreso_date, cese_date))
             previous_cese_period = cese_date
 
         # Calcular días de servicio usando solo los periodos válidos
@@ -130,7 +136,14 @@ def expandir_contratos(df, PERIOD_COLUMNS, TODAY, DAYS_PER_YEAR, CONTRACT_TYPE):
         # Tipo de contrato
         locacion = row['AREA'].strip().upper()
         threshold_years = 3 if 'PEDREGAL' in locacion else 5
-        contrato = 0 if total_service_days >= threshold_years * DAYS_PER_YEAR else 1
+        contrato = 0 if (threshold_years * DAYS_PER_YEAR <= total_service_days) else 1
+
+        # Calcular si alguien esta a un mes o menos de ser indeterminado
+        becoming_indetermined = True if (((threshold_years * DAYS_PER_YEAR) - total_service_days <= 30) and ((threshold_years * DAYS_PER_YEAR) - total_service_days >= 0)) else False
+        days_to_become_indetermined = (threshold_years * DAYS_PER_YEAR) - total_service_days if becoming_indetermined else 0
+
+        # Calcular si alguien esta a dos semanas o menos de finalizar contrato
+        contract_finalized = True if (((previous_cese_period - TODAY).days <= 14) and ((previous_cese_period - TODAY).days > 0)) else False
 
         # Castear los periodos
         period_details_str = " / ".join(period_details)
@@ -143,7 +156,11 @@ def expandir_contratos(df, PERIOD_COLUMNS, TODAY, DAYS_PER_YEAR, CONTRACT_TYPE):
             'Periodos': all_periods,
             'Tiempo Servicio': total_service_days,
             'Contrato': CONTRACT_TYPE[contrato],
-            'Periodos Detallados': period_details_str
+            'Periodos Detallados': period_details_str,
+            'Becoming Indetermined': becoming_indetermined,
+            'Days to become indetermined': days_to_become_indetermined,
+            'Contract Finalized': contract_finalized,
+            'Days to finalized Contract': previous_cese_period - TODAY,
         })
 
     return pl.DataFrame(results)
