@@ -1,6 +1,13 @@
 let headers = [];
 let rows = [];
-let indexPeriodosDetallados = -1;
+let columnasOcultas = [
+    "Periodos Detallados",
+    "Indeterminacion de contrato",
+    "Dias para ser indeterminado",
+    "Finalizacion de contrato",
+    "Dias para terminar contrato"
+];
+let indicesOcultosOriginales = [];
 let currentSort = { col: "Tiempo Servicio", asc: false };
 
 async function cargarCSV() {
@@ -12,11 +19,16 @@ async function cargarCSV() {
     headers = lines[0].split(";").map(h => h.trim());
     rows = lines.slice(1).map(l => l.split(";").map(c => c.trim()));
 
-    indexPeriodosDetallados = headers.indexOf("Periodos Detallados");
+    columnasOcultas.forEach(col => {
+        const index = headers.indexOf(col);
+        if (index !== -1) {
+            indicesOcultosOriginales.push(index);
+        }
+    });
 
-    if (indexPeriodosDetallados !== -1) {
-        headers.splice(indexPeriodosDetallados, 1); // Ocultamos esa columna
-    }
+    // Ordenamos al revés para eliminar sin desfases
+    indicesOcultosOriginales.sort((a, b) => b - a);
+    indicesOcultosOriginales.forEach(i => headers.splice(i, 1));
 }
 
 function renderTabla(datos) {
@@ -34,18 +46,18 @@ function renderTabla(datos) {
         const tr = document.createElement("tr");
 
         row.forEach((celda, i) => {
-            if (i === indexPeriodosDetallados) return; // omitimos la celda visualmente
+            if (indicesOcultosOriginales.includes(i)) return;
 
-            const col = headers[i >= indexPeriodosDetallados ? i - 1 : i]; // ajustar índice si ya quitamos una columna
+            const colIndexAjustado = i - indicesOcultosOriginales.filter(x => x < i).length;
+            const col = headers[colIndexAjustado];
             const td = document.createElement("td");
-
-            td.textContent = celda;
             td.setAttribute("data-col", col);
 
-            if (col === "Periodos" && indexPeriodosDetallados !== -1) {
-                const detalleTexto = row[indexPeriodosDetallados];
+            if (col === "Periodos") {
+                const indexDetalle = columnasOcultas.indexOf("Periodos Detallados");
+                const indexRealDetalle = indexDetalle !== -1 ? indicesOcultosOriginales[indexDetalle] : -1;
+                const detalleTexto = row[indexRealDetalle];
 
-                // Crear contenido visual con ícono y tooltip
                 td.innerHTML = `
                     <span title="Haz clic para ver los periodos detallados" style="
                         cursor: pointer;
@@ -59,17 +71,17 @@ function renderTabla(datos) {
                         <span style="font-size: 14px; color: #007bff;">📅</span>
                     </span>
                 `;
-
                 td.addEventListener("click", () => {
-                    const periodosArray = detalleTexto.split(" / ");
+                    const periodosArray = detalleTexto?.split(" / ") ?? [];
                     document.getElementById("modalText").innerHTML =
                         "<ul style='padding-left: 20px;'>" +
                         periodosArray.map(p => `<li>${p.trim()}</li>`).join("") +
                         "</ul>";
                     document.getElementById("periodosModal").style.display = "block";
                 });
+            } else {
+                td.textContent = celda;
             }
-
 
             tr.appendChild(td);
         });
@@ -81,7 +93,11 @@ function renderTabla(datos) {
 function actualizarFiltros(columna, selectorId) {
     const index = headers.indexOf(columna);
     const selector = document.getElementById(selectorId);
-    const valores = [...new Set(rows.map(r => r[index]).filter(Boolean))].sort();
+    const valores = [...new Set(rows.map(r => {
+        const realIndex = headers.indexOf(columna);
+        return r.filter((_, i) => !indicesOcultosOriginales.includes(i))[realIndex];
+    }).filter(Boolean))].sort();
+
     for (const val of valores) {
         const opt = document.createElement("option");
         opt.value = val;
@@ -101,9 +117,15 @@ function aplicarFiltros() {
     let filtrados = rows.filter(row =>
         Object.entries(filtros).every(([col, val]) => {
             const i = headers.indexOf(col);
-            return val === "" || row[i] === val;
+            const realIndex = row.findIndex((_, idx) => {
+                const colIndexAjustado = idx - indicesOcultosOriginales.filter(x => x < idx).length;
+                return headers[colIndexAjustado] === col;
+            });
+            return val === "" || row[realIndex] === val;
         }) && row.some((celda, i) => {
-            const colName = headers[i >= indexPeriodosDetallados ? i - 1 : i];
+            if (indicesOcultosOriginales.includes(i)) return false;
+            const colIndexAjustado = i - indicesOcultosOriginales.filter(x => x < i).length;
+            const colName = headers[colIndexAjustado];
             return ["Nombre", "Dni", "Cargo", "Contrato"].includes(colName) && celda.toLowerCase().includes(termino);
         })
     );
@@ -113,8 +135,9 @@ function aplicarFiltros() {
         const esNumerico = ["Periodos", "Tiempo Servicio"].includes(currentSort.col);
 
         filtrados.sort((a, b) => {
-            let valA = a[index];
-            let valB = b[index];
+            let valA = a.filter((_, i) => !indicesOcultosOriginales.includes(i))[index];
+            let valB = b.filter((_, i) => !indicesOcultosOriginales.includes(i))[index];
+
             if (esNumerico) {
                 valA = parseFloat(valA.replace(",", ".")) || 0;
                 valB = parseFloat(valB.replace(",", ".")) || 0;
@@ -122,6 +145,7 @@ function aplicarFiltros() {
                 valA = valA.toLowerCase();
                 valB = valB.toLowerCase();
             }
+
             if (valA < valB) return currentSort.asc ? -1 : 1;
             if (valA > valB) return currentSort.asc ? 1 : -1;
             return 0;
@@ -143,8 +167,9 @@ function ordenarPor(columna) {
 function descargarCSV() {
     const datos = aplicarFiltros();
     let contenido = "\ufeff" + headers.join(";") + "\n";
-
-    contenido += datos.map(row => row.join(";")).join("\n"); // ✅ sin eliminar columnas
+    contenido += datos.map(row => {
+        return row.filter((_, i) => !indicesOcultosOriginales.includes(i)).join(";");
+    }).join("\n");
 
     const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
