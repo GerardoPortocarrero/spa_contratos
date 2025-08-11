@@ -11,8 +11,7 @@ def register_routes(app):
 
     @app.route("/contrato.csv")
     def file_csv():
-        if cache.csv_cache is None:
-            cache.csv_cache = procesar_excel()
+        cache.csv_cache = procesar_excel()
 
         return Response(
             cache.csv_cache,

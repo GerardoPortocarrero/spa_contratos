@@ -84,10 +84,10 @@ def formatear_fecha_es(fecha: datetime) -> str:
 def formatear_rango_periodo(ingreso, cese, TODAY) -> str:
     ingreso_txt = formatear_fecha_es(ingreso)
     cese_txt = formatear_fecha_es(cese)
-    if cese == TODAY:
-        cese_txt = f"(ACTIVO a la fecha {cese_txt})"
-    elif TODAY <= cese:
-        cese_txt = f"(CESE a la fecha {cese_txt})"
+    if TODAY <= cese:
+        cese_txt = f"(Fecha Cese {cese_txt}) ACTIVO"
+    elif TODAY > cese:
+        cese_txt = f"(Fecha Cese {cese_txt}) INACTIVO"
     return f"{ingreso_txt} a {cese_txt}"
 
 # Expandir el dataframe con los datos necesarios

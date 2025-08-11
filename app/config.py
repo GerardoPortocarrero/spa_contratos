@@ -31,7 +31,7 @@ CONTRACT_TYPE = {
 }
 CONTRATOS = {
     "name": "Control contratos",
-    "file_name": "Control Contratos.xlsx",
+    "file_name": "Control Contratos - copia.xlsx",
     "sheet_name": "DATOS",
     "relevant_columns": [
         'TRABAJADOR',

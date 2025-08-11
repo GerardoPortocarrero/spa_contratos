@@ -11,24 +11,41 @@ let indicesOcultosOriginales = [];
 let currentSort = { col: "Tiempo Servicio", asc: false };
 
 async function cargarCSV() {
-    const response = await fetch("contrato.csv", {
-        headers: { 'Accept': 'text/csv; charset=utf-8' }
-    });
-    const text = await response.text();
-    const lines = text.trim().split("\n").filter(line => line.trim() !== "");
-    headers = lines[0].split(";").map(h => h.trim());
-    rows = lines.slice(1).map(l => l.split(";").map(c => c.trim()));
-
-    columnasOcultas.forEach(col => {
-        const index = headers.indexOf(col);
-        if (index !== -1) {
-            indicesOcultosOriginales.push(index);
+    try {
+        const response = await fetch("contrato.csv", {
+            headers: { 'Accept': 'text/csv; charset=utf-8' }
+        });
+        if (!response.ok) {
+            throw new Error(`Error al cargar el CSV: ${response.statusText}`);
         }
-    });
+        const text = await response.text();
+        const lines = text.trim().split("\n").filter(line => line.trim() !== "");
+        headers = lines[0].split(";").map(h => h.trim());
+        rows = lines.slice(1).map(l => l.split(";").map(c => c.trim()));
 
-    // Ordenamos al revés para eliminar sin desfases
-    indicesOcultosOriginales.sort((a, b) => b - a);
-    indicesOcultosOriginales.forEach(i => headers.splice(i, 1));
+        // Depuración: Mostrar headers y primera fila
+        console.log("Headers del CSV:", headers);
+        console.log("Primera fila del CSV:", rows[0]);
+
+        // Forzar índices ocultos manualmente
+        indicesOcultosOriginales = [7, 8, 9, 10, 11]; // Índices fijos: Periodos Detallados (7), etc.
+        console.log("Índices ocultos originales (forzados):", indicesOcultosOriginales);
+
+        // Verificar datos en índice 7
+        console.log("Muestra de datos en 'Periodos Detallados' (índice 7):", rows.map(row => row[7]).slice(0, 5));
+
+        // Ordenamos al revés para eliminar sin desfases
+        indicesOcultosOriginales.sort((a, b) => b - a);
+        indicesOcultosOriginales = indicesOcultosOriginales.filter(index => index !== -1);
+        indicesOcultosOriginales.forEach(i => headers.splice(i, 1));
+
+        // Depuración: Mostrar headers después de eliminar columnas
+        console.log("Headers después de eliminar columnas ocultas:", headers);
+
+        renderTabla(aplicarFiltros());
+    } catch (error) {
+        console.error("Error en cargarCSV:", error);
+    }
 }
 
 function renderTabla(datos) {
@@ -54,9 +71,16 @@ function renderTabla(datos) {
             td.setAttribute("data-col", col);
 
             if (col === "Periodos") {
-                const indexDetalle = columnasOcultas.indexOf("Periodos Detallados");
-                const indexRealDetalle = indexDetalle !== -1 ? indicesOcultosOriginales[indexDetalle] : -1;
-                const detalleTexto = row[indexRealDetalle];
+                const indexRealDetalle = 7; // Forzar índice 7 para Periodos Detallados
+                const detalleTexto = row[indexRealDetalle] && row[indexRealDetalle] !== "0"
+                    ? row[indexRealDetalle]
+                    : "Sin datos";
+
+                // Depuración: Mostrar índices y detalleTexto
+                console.log("Fila actual:", row);
+                console.log("Columna actual:", col);
+                console.log("indexRealDetalle:", indexRealDetalle);
+                console.log("detalleTexto:", detalleTexto);
 
                 td.innerHTML = `
                     <span title="Haz clic para ver los periodos detallados" style="
@@ -72,11 +96,17 @@ function renderTabla(datos) {
                     </span>
                 `;
                 td.addEventListener("click", () => {
-                    const periodosArray = detalleTexto?.split(" / ") ?? [];
+                    const periodosArray = detalleTexto && detalleTexto !== "Sin datos"
+                        ? detalleTexto.split(" / ").map(p => p.trim())
+                        : [];
+                    console.log("periodosArray:", periodosArray);
+
                     document.getElementById("modalText").innerHTML =
-                        "<ul style='padding-left: 20px;'>" +
-                        periodosArray.map(p => `<li>${p.trim()}</li>`).join("") +
-                        "</ul>";
+                        periodosArray.length > 0
+                            ? "<ul style='padding-left: 20px;'>" +
+                              periodosArray.map(p => `<li>${p}</li>`).join("") +
+                              "</ul>"
+                            : "<p>No hay datos de periodos detallados disponibles.</p>";
                     document.getElementById("periodosModal").style.display = "block";
                 });
             } else {
@@ -184,8 +214,6 @@ function descargarCSV() {
 
 document.addEventListener("DOMContentLoaded", async () => {
     await cargarCSV();
-
-    renderTabla(aplicarFiltros());
 
     actualizarFiltros("Locacion", "locacionFilter");
     actualizarFiltros("Cargo", "cargoFilter");
