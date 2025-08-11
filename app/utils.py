@@ -25,8 +25,8 @@ def procesar_excel():
     if cache.csv_cache is None:
         dm.alerta_becoming_indetermined(df, os.path.join(PROJECT_ADRESS, BECOMING_INDETERMINED_ALERT))
         dm.alerta_contract_finalized(df, os.path.join(PROJECT_ADRESS, CONTRACT_FINALIZED_ALERT))
-        #dm.send_email_main(os.path.join(PROJECT_ADRESS, BECOMING_INDETERMINED_ALERT), MAIL_TO, MAIL_CC, BECOMING_INDETERMINED_SUBJECT, STATIC)
-        #dm.send_email_main(os.path.join(PROJECT_ADRESS, CONTRACT_FINALIZED_ALERT), MAIL_TO, MAIL_CC, CONTRACT_FINALIZED_SUBJECT, STATIC)
+        dm.send_email_main(os.path.join(PROJECT_ADRESS, BECOMING_INDETERMINED_ALERT), MAIL_TO, MAIL_CC, BECOMING_INDETERMINED_SUBJECT, STATIC)
+        dm.send_email_main(os.path.join(PROJECT_ADRESS, CONTRACT_FINALIZED_ALERT), MAIL_TO, MAIL_CC, CONTRACT_FINALIZED_SUBJECT, STATIC)
 
     # Convertir de Polars a Pandas
     df_pd = df.to_pandas()
