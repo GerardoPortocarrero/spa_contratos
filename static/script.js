@@ -118,6 +118,36 @@ function renderTabla(datos) {
 
         tbody.appendChild(tr);
     });
+
+    actualizarKPIs(datos);
+}
+
+function actualizarKPIs(datos) {
+    const originalContratoIndex = 6; // 'Contrato' is at index 6 in the original CSV data
+
+    let indeterminadoCount = 0;
+    let necesidadCount = 0;
+
+    datos.forEach(row => {
+        const contrato = row[originalContratoIndex];
+        if (contrato === "INDETERMINADO") {
+            indeterminadoCount++;
+        } else if (contrato === "NECESIDAD MERCADO") {
+            necesidadCount++;
+        }
+    });
+
+    const totalCount = datos.length;
+    const indeterminadoPerc = totalCount > 0 ? ((indeterminadoCount / totalCount) * 100).toFixed(1) : 0;
+    const necesidadPerc = totalCount > 0 ? ((necesidadCount / totalCount) * 100).toFixed(1) : 0;
+
+    document.getElementById("kpi-indeterminado-count").innerText = indeterminadoCount;
+    document.getElementById("kpi-indeterminado-perc").innerText = `${indeterminadoPerc}%`;
+
+    document.getElementById("kpi-necesidad-count").innerText = necesidadCount;
+    document.getElementById("kpi-necesidad-perc").innerText = `${necesidadPerc}%`;
+
+    document.getElementById("kpi-total-count").innerText = totalCount;
 }
 
 function actualizarFiltros(columna, selectorId) {
