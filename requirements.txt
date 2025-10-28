@@ -2,3 +2,7 @@ flask
 pandas
 openpyxl
 msoffcrypto-tool
+polars
+pywin32
+beautifulsoup4
+pyarrow

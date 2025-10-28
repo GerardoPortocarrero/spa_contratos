@@ -99,55 +99,77 @@ def expandir_contratos(df, PERIOD_COLUMNS, TODAY, DAYS_PER_YEAR, CONTRACT_TYPE):
 
     for row in df.iter_rows(named=True):
         all_periods = 0
-        count = 0
-        valid_periods = []
         period_details = []
-        previous_cese_period = None
         
+        continuous_periods = []
+        last_continuous_cese = None
+
+        # 1. Recopilar todos los periodos continuos
         for period in period_numbers:
             ingreso_date = row.get(f'FECHA_INGRESO_PERIODO_{period}')
             cese_date = row.get(f'FECHA_CESE_PERIODO_{period}')
-            count += 1
 
-            # Si no hay fecha de ingreso verificar el siguiente periodo
             if ingreso_date is None:
-                continue            
+                continue
 
-            # Si no hay fecha de salida, asumimos que sigue activo hoy
-            if cese_date is None:
-                cese_date = TODAY
+            # Si hay una interrupción grande, reiniciar la cadena de continuidad
+            if last_continuous_cese and (ingreso_date - last_continuous_cese).days > DAYS_PER_YEAR:
+                continuous_periods = []
 
+            continuous_periods.append((ingreso_date, cese_date))
+            last_continuous_cese = cese_date
             all_periods += 1
-            period_details.append(formatear_rango_periodo(ingreso_date, cese_date, TODAY))
-
-            # Verificamos si el periodo es válido
-            if previous_cese_period:
-                gap_days = (ingreso_date - previous_cese_period).days
-                if gap_days > DAYS_PER_YEAR:
-                    valid_periods = []  # reiniciar periodos válidos si el salto es muy grande
             
-            if count < len(period_numbers):
-                valid_periods.append((ingreso_date, cese_date))                
-            else:
-                valid_periods.append((ingreso_date, TODAY))
+            # Para el detalle visual, usamos la fecha de cese real o asumimos hoy si no existe
+            display_cese_date = cese_date if cese_date is not None else TODAY
+            period_details.append(formatear_rango_periodo(ingreso_date, display_cese_date, TODAY))
 
-            previous_cese_period = cese_date
+        # 2. Determinar el estado (activo/inactivo) y la fecha final real
+        is_active = False
+        last_real_cese_date = None
+        if continuous_periods:
+            # La última fecha de cese real de la cadena continua
+            last_real_cese_date = continuous_periods[-1][1]
+            # Si la última fecha de cese es nula o futura, el empleado está activo
+            if last_real_cese_date is None or TODAY <= last_real_cese_date:
+                is_active = True
 
-        # Calcular días de servicio usando solo los periodos válidos
-        total_service_days = sum((cese - ingreso).days for ingreso, cese in valid_periods)
+        # 3. Calcular el tiempo de servicio total hasta el día de HOY
+        total_service_days = 0
+        if continuous_periods:
+            first_ingreso_date = continuous_periods[0][0]
+            # Si está activo, contamos hasta hoy. Si no, hasta su última fecha de cese.
+            end_date_for_calc = TODAY if is_active else last_real_cese_date
+            if end_date_for_calc:
+                total_service_days = (end_date_for_calc - first_ingreso_date).days
 
-        # Tipo de contrato
+        # 4. Determinar el tipo de contrato basado en la nueva lógica
         locacion = row['AREA'].strip().upper()
         threshold_years = 3 if 'PEDREGAL' in locacion else 5
-        contrato = 0 if (threshold_years * DAYS_PER_YEAR <= total_service_days) else 1
+        is_eligible_for_indeterminado = (total_service_days >= threshold_years * DAYS_PER_YEAR)
+        
+        contrato = 1 # Por defecto 'NECESIDAD MERCADO'
+        if is_active and is_eligible_for_indeterminado:
+            contrato = 0 # 'INDETERMINADO'
 
-        # Calcular si alguien esta a un mes o menos de ser indeterminado
-        becoming_indetermined = True if (((threshold_years * DAYS_PER_YEAR) - total_service_days <= 30) and ((threshold_years * DAYS_PER_YEAR) - total_service_days >= 0)) else False
-        days_to_become_indetermined = (threshold_years * DAYS_PER_YEAR) - total_service_days if becoming_indetermined else 0
+        # 5. Calcular alertas
+        # Alerta para ser indeterminado (solo si está activo y aún no lo es)
+        becoming_indetermined = False
+        days_to_become_indetermined = 0
+        if is_active and not is_eligible_for_indeterminado:
+            days_remaining = (threshold_years * DAYS_PER_YEAR) - total_service_days
+            if 0 <= days_remaining <= 30:
+                becoming_indetermined = True
+                days_to_become_indetermined = days_remaining
 
-        # Calcular si alguien esta a dos semanas o menos de finalizar contrato
-        contract_finalized = True if (((previous_cese_period - TODAY).days <= 14) and ((previous_cese_period - TODAY).days > 0)) else False
-        days_to_finalized_contract = (previous_cese_period - TODAY).days if contract_finalized else 0
+        # Alerta para finalización de contrato (solo si está activo y tiene fecha de fin)
+        contract_finalized = False
+        days_to_finalized_contract = 0
+        if is_active and last_real_cese_date:
+            days_remaining = (last_real_cese_date - TODAY).days
+            if 0 < days_remaining <= 14:
+                contract_finalized = True
+                days_to_finalized_contract = days_remaining
 
         # Castear los periodos
         period_details_str = " / ".join(period_details)
